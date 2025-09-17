@@ -54,17 +54,21 @@ def can_use(user_id, cooldown_dict, delta):
 # ============================
 @bot.command()
 async def addmoney(ctx, user: discord.Member, amount: int):
-    if str(ctx.author) != "c4rtt.#0000":
-        await ctx.send("You do not have permission!")
-        return
+ADMIN_ID = 1001809123249238096  # your Discord ID
+
+if ctx.author.id != ADMIN_ID:
+    await ctx.send("You do not have permission!")
+    return
     update_balance(user, amount)
     await ctx.send(f"Added {amount} coins to {user.mention}. Balance: {get_balance(user)}")
 
 @bot.command()
 async def removemoney(ctx, user: discord.Member, amount: int):
-    if str(ctx.author) != "c4rtt.#0000":
-        await ctx.send("You do not have permission!")
-        return
+ADMIN_ID = 1001809123249238096  # your Discord ID
+
+if ctx.author.id != ADMIN_ID:
+    await ctx.send("You do not have permission!")
+    return
     update_balance(user, -amount)
     await ctx.send(f"Removed {amount} coins from {user.mention}. Balance: {get_balance(user)}")
 
@@ -300,3 +304,4 @@ if not TOKEN:
 
 keep_alive()
 bot.run(TOKEN)
+
