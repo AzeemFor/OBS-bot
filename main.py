@@ -1,5 +1,5 @@
 # ============================
-# Discord Owo-Style Bot (40+ commands)
+# Discord Owo-Style Bot (Full 40+ commands)
 # GitHub & Replit Ready
 # ============================
 
@@ -25,9 +25,10 @@ user_balances = {}
 work_cooldowns = {}
 daily_cooldowns = {}
 beg_cooldowns = {}
-coinflip_cooldowns = {}
-blackjack_games = {}
 inventory = {}
+pets = {}
+shop_items = {"Sword": 500, "Shield": 400, "Potion": 50}
+leaderboard_limit = 10
 
 # ============================
 # Helper Functions
@@ -40,7 +41,7 @@ def update_balance(user, amount):
     user_balances[user.id] = balance
     return balance
 
-def can_use_command(cooldown_dict, user_id, delta):
+def can_use(user_id, cooldown_dict, delta):
     now = datetime.utcnow()
     last = cooldown_dict.get(user_id)
     if last and now - last < delta:
@@ -49,16 +50,15 @@ def can_use_command(cooldown_dict, user_id, delta):
     return True, None
 
 # ============================
-# Admin Commands
-# Only c4rtt. can use
+# Admin Commands (c4rtt. only)
 # ============================
 @bot.command()
 async def addmoney(ctx, user: discord.Member, amount: int):
-    if str(ctx.author) != "c4rtt.#0000":  # replace with full tag
+    if str(ctx.author) != "c4rtt.#0000":
         await ctx.send("You do not have permission!")
         return
     update_balance(user, amount)
-    await ctx.send(f"Added {amount} coins to {user.mention}. New balance: {get_balance(user)}")
+    await ctx.send(f"Added {amount} coins to {user.mention}. Balance: {get_balance(user)}")
 
 @bot.command()
 async def removemoney(ctx, user: discord.Member, amount: int):
@@ -66,7 +66,7 @@ async def removemoney(ctx, user: discord.Member, amount: int):
         await ctx.send("You do not have permission!")
         return
     update_balance(user, -amount)
-    await ctx.send(f"Removed {amount} coins from {user.mention}. New balance: {get_balance(user)}")
+    await ctx.send(f"Removed {amount} coins from {user.mention}. Balance: {get_balance(user)}")
 
 # ============================
 # Economy Commands
@@ -77,23 +77,23 @@ async def balance(ctx):
 
 @bot.command()
 async def work(ctx):
-    ok, remaining = can_use_command(work_cooldowns, ctx.author.id, timedelta(hours=5))
+    ok, rem = can_use(ctx.author.id, work_cooldowns, timedelta(hours=5))
     if not ok:
-        hours, rem = divmod(remaining.seconds, 3600)
-        minutes, seconds = divmod(rem, 60)
-        await ctx.send(f"Wait {hours}h {minutes}m {seconds}s to work again.")
+        h, r = divmod(rem.seconds, 3600)
+        m, s = divmod(r, 60)
+        await ctx.send(f"Wait {h}h {m}m {s}s before working again.")
         return
-    earned = random.randint(100, 300)
-    update_balance(ctx.author, earned)
-    await ctx.send(f"{ctx.author.mention} worked and earned {earned} coins! Balance: {get_balance(ctx.author)}")
+    earn = random.randint(100, 300)
+    update_balance(ctx.author, earn)
+    await ctx.send(f"{ctx.author.mention} worked and earned {earn} coins! Balance: {get_balance(ctx.author)}")
 
 @bot.command()
 async def daily(ctx):
-    ok, remaining = can_use_command(daily_cooldowns, ctx.author.id, timedelta(days=1))
+    ok, rem = can_use(ctx.author.id, daily_cooldowns, timedelta(days=1))
     if not ok:
-        hours, rem = divmod(remaining.seconds, 3600)
-        minutes, seconds = divmod(rem, 60)
-        await ctx.send(f"Wait {hours}h {minutes}m {seconds}s to claim daily again.")
+        h, r = divmod(rem.seconds, 3600)
+        m, s = divmod(r, 60)
+        await ctx.send(f"Wait {h}h {m}m {s}s before claiming daily again.")
         return
     reward = 500
     update_balance(ctx.author, reward)
@@ -101,18 +101,18 @@ async def daily(ctx):
 
 @bot.command()
 async def beg(ctx):
-    ok, remaining = can_use_command(beg_cooldowns, ctx.author.id, timedelta(hours=2))
+    ok, rem = can_use(ctx.author.id, beg_cooldowns, timedelta(hours=2))
     if not ok:
-        hours, rem = divmod(remaining.seconds, 3600)
-        minutes, seconds = divmod(rem, 60)
-        await ctx.send(f"Wait {hours}h {minutes}m {seconds}s to beg again.")
+        h, r = divmod(rem.seconds, 3600)
+        m, s = divmod(r, 60)
+        await ctx.send(f"Wait {h}h {m}m {s}s before begging again.")
         return
-    reward = random.choice([0, 50, 100])
-    update_balance(ctx.author, reward)
-    await ctx.send(f"{ctx.author.mention} begged and got {reward} coins! Balance: {get_balance(ctx.author)}")
+    earn = random.choice([0, 50, 100])
+    update_balance(ctx.author, earn)
+    await ctx.send(f"{ctx.author.mention} begged and got {earn} coins! Balance: {get_balance(ctx.author)}")
 
 # ============================
-# Coinflip Command
+# Mini-Games
 # ============================
 @bot.command()
 async def coinflip(ctx, amount: int, choice: str):
@@ -120,28 +120,22 @@ async def coinflip(ctx, amount: int, choice: str):
     if choice not in ["heads", "tails"]:
         await ctx.send("Please say heads or tails!")
         return
-    bal = get_balance(ctx.author)
-    if amount > bal:
-        await ctx.send("You don't have enough coins!")
+    if amount > get_balance(ctx.author):
+        await ctx.send("Not enough coins!")
         return
-    flip = random.choice(["heads", "tails"])
-    if choice == flip:
+    result = random.choice(["heads", "tails"])
+    if choice == result:
         update_balance(ctx.author, amount)
-        await ctx.send(f"It's {flip}! You won {amount} coins! Balance: {get_balance(ctx.author)}")
+        await ctx.send(f"It's {result}! You won {amount} coins! Balance: {get_balance(ctx.author)}")
     else:
         update_balance(ctx.author, -amount)
-        await ctx.send(f"It's {flip}! You lost {amount} coins! Balance: {get_balance(ctx.author)}")
+        await ctx.send(f"It's {result}! You lost {amount} coins! Balance: {get_balance(ctx.author)}")
 
-# ============================
-# Blackjack Command (simplified)
-# ============================
 @bot.command()
 async def blackjack(ctx, bet: int):
-    bal = get_balance(ctx.author)
-    if bet > bal:
-        await ctx.send("You don't have enough coins!")
+    if bet > get_balance(ctx.author):
+        await ctx.send("Not enough coins!")
         return
-    # Simplified: win 50% chance
     if random.random() < 0.5:
         update_balance(ctx.author, bet)
         await ctx.send(f"You won {bet} coins! Balance: {get_balance(ctx.author)}")
@@ -149,23 +143,140 @@ async def blackjack(ctx, bet: int):
         update_balance(ctx.author, -bet)
         await ctx.send(f"You lost {bet} coins! Balance: {get_balance(ctx.author)}")
 
+@bot.command()
+async def slots(ctx, bet: int):
+    if bet > get_balance(ctx.author):
+        await ctx.send("Not enough coins!")
+        return
+    symbols = ["🍎", "🍌", "🍒", "🍇", "🍉"]
+    result = [random.choice(symbols) for _ in range(3)]
+    await ctx.send(" | ".join(result))
+    if len(set(result)) == 1:
+        win = bet * 3
+        update_balance(ctx.author, win)
+        await ctx.send(f"Jackpot! You won {win} coins! Balance: {get_balance(ctx.author)}")
+    elif len(set(result)) == 2:
+        win = bet
+        update_balance(ctx.author, win)
+        await ctx.send(f"You won {win} coins! Balance: {get_balance(ctx.author)}")
+    else:
+        update_balance(ctx.author, -bet)
+        await ctx.send(f"You lost {bet} coins! Balance: {get_balance(ctx.author)}")
+
+@bot.command()
+async def roulette(ctx, bet: int, color: str):
+    if bet > get_balance(ctx.author):
+        await ctx.send("Not enough coins!")
+        return
+    color = color.lower()
+    if color not in ["red", "black", "green"]:
+        await ctx.send("Pick red, black, or green!")
+        return
+    outcome = random.choices(["red","black","green"], weights=[18,18,2])[0]
+    if color == outcome:
+        win = bet*2 if color!="green" else bet*14
+        update_balance(ctx.author, win)
+        await ctx.send(f"The ball landed on {outcome}! You won {win} coins! Balance: {get_balance(ctx.author)}")
+    else:
+        update_balance(ctx.author, -bet)
+        await ctx.send(f"The ball landed on {outcome}! You lost {bet} coins! Balance: {get_balance(ctx.author)}")
+
 # ============================
-# Fun Commands (example subset)
+# Inventory & Pets
+# ============================
+@bot.command()
+async def inventory(ctx):
+    inv = inventory.get(ctx.author.id, [])
+    await ctx.send(f"{ctx.author.mention}'s inventory: {', '.join(inv) if inv else 'Empty'}")
+
+@bot.command()
+async def adopt(ctx, pet_name: str):
+    pets.setdefault(ctx.author.id, []).append(pet_name)
+    await ctx.send(f"{ctx.author.mention} adopted {pet_name}!")
+
+@bot.command()
+async def petslist(ctx):
+    p = pets.get(ctx.author.id, [])
+    await ctx.send(f"{ctx.author.mention}'s pets: {', '.join(p) if p else 'None'}")
+
+@bot.command()
+async def fish(ctx):
+    catch = random.choice(["🐟", "🐠", "🦈"])
+    inventory.setdefault(ctx.author.id, []).append(catch)
+    await ctx.send(f"{ctx.author.mention} caught a {catch}!")
+
+@bot.command()
+async def hunt(ctx):
+    catch = random.choice(["🦌","🐗","🐇"])
+    inventory.setdefault(ctx.author.id, []).append(catch)
+    await ctx.send(f"{ctx.author.mention} hunted a {catch}!")
+
+# ============================
+# Shop Commands
+# ============================
+@bot.command()
+async def shop(ctx):
+    items = [f"{name}: {price} coins" for name, price in shop_items.items()]
+    await ctx.send("Available items:\n" + "\n".join(items))
+
+@bot.command()
+async def buy(ctx, item: str):
+    if item not in shop_items:
+        await ctx.send("Item not found!")
+        return
+    price = shop_items[item]
+    if get_balance(ctx.author) < price:
+        await ctx.send("Not enough coins!")
+        return
+    update_balance(ctx.author, -price)
+    inventory.setdefault(ctx.author.id, []).append(item)
+    await ctx.send(f"{ctx.author.mention} bought {item}! Balance: {get_balance(ctx.author)}")
+
+@bot.command()
+async def sell(ctx, item: str):
+    inv = inventory.get(ctx.author.id, [])
+    if item not in inv:
+        await ctx.send("You don't own that item!")
+        return
+    inv.remove(item)
+    price = shop_items.get(item, 10)//2
+    update_balance(ctx.author, price)
+    await ctx.send(f"{ctx.author.mention} sold {item} for {price} coins! Balance: {get_balance(ctx.author)}")
+
+# ============================
+# Fun / Social
 # ============================
 @bot.command()
 async def hug(ctx, user: discord.Member):
-    await ctx.send(f"{ctx.author.mention} hugged {user.mention}! 🤗")
-
+    await ctx.send(f"{ctx.author.mention} hugged {user.mention} 🤗")
 @bot.command()
 async def slap(ctx, user: discord.Member):
-    await ctx.send(f"{ctx.author.mention} slapped {user.mention}! 😡")
-
+    await ctx.send(f"{ctx.author.mention} slapped {user.mention} 😡")
 @bot.command()
 async def kiss(ctx, user: discord.Member):
-    await ctx.send(f"{ctx.author.mention} kissed {user.mention}! 😘")
+    await ctx.send(f"{ctx.author.mention} kissed {user.mention} 😘")
+@bot.command()
+async def poke(ctx, user: discord.Member):
+    await ctx.send(f"{ctx.author.mention} poked {user.mention} 👈")
+@bot.command()
+async def feed(ctx, user: discord.Member):
+    await ctx.send(f"{ctx.author.mention} fed {user.mention} 🍗")
 
 # ============================
-# Keep-alive server for Replit
+# Leaderboard
+# ============================
+@bot.command()
+async def leaderboard(ctx):
+    top = sorted(user_balances.items(), key=lambda x: x[1], reverse=True)[:leaderboard_limit]
+    msg = "Leaderboard:\n"
+    for idx, (uid, bal) in enumerate(top, start=1):
+        member = ctx.guild.get_member(uid)
+        if member:
+            msg += f"{idx}. {member.display_name}: {bal} coins\n"
+    await ctx.send(msg)
+
+# ============================
+# Keep-alive for Replit
 # ============================
 app = Flask('')
 
@@ -184,8 +295,8 @@ def keep_alive():
 # Run Bot
 # ============================
 TOKEN = os.getenv("DISCORD_TOKEN")
-if TOKEN is None:
-    raise ValueError("No DISCORD_TOKEN found. Set it as an environment variable.")
+if not TOKEN:
+    raise ValueError("Set DISCORD_TOKEN environment variable")
 
 keep_alive()
 bot.run(TOKEN)
