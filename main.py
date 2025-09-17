@@ -60,7 +60,7 @@ async def addmoney(ctx, user: discord.Member, amount: int):
         await ctx.send("You do not have permission!")
         return
     update_balance(user, amount)
-    await ctx.send(f"Added {amount} coins to {user.mention}. Balance: {get_balance(user)}")
+    await ctx.send(f"{amount} has been added to {user.display_name}'s balance. New balance: {get_balance(user)}")
 
 @bot.command()
 async def removemoney(ctx, user: discord.Member, amount: int):
@@ -68,8 +68,7 @@ async def removemoney(ctx, user: discord.Member, amount: int):
         await ctx.send("You do not have permission!")
         return
     update_balance(user, -amount)
-    await ctx.send(f"Removed {amount} coins from {user.mention}. Balance: {get_balance(user)}")
-
+    await ctx.send(f"{amount} has been removed from {user.display_name}'s balance. New balance: {get_balance(user)}")
 # ============================
 # Economy Commands
 # ============================
@@ -302,5 +301,6 @@ if not TOKEN:
 
 keep_alive()
 bot.run(TOKEN)
+
 
 
